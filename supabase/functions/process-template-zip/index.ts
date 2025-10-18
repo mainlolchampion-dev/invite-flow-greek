@@ -35,27 +35,49 @@ Deno.serve(async (req) => {
     let htmlContent = '';
     const assetUrls: { [key: string]: string } = {};
     const previewImages: string[] = [];
+    let rootDir = '';
+
+    // First pass: find root directory containing index.html
+    for (const [filename] of Object.entries(zip.files)) {
+      if (filename.endsWith('index.html')) {
+        const parts = filename.split('/');
+        if (parts.length > 1) {
+          // Get all parts except the filename
+          rootDir = parts.slice(0, -1).join('/') + '/';
+        }
+        console.log('Found root directory:', rootDir || '(root)');
+        break;
+      }
+    }
 
     // Process all files in ZIP
     for (const [filename, file] of Object.entries(zip.files)) {
       if (file.dir) continue;
 
-      console.log('Processing file:', filename);
+      // Skip files not in root directory if root dir exists
+      if (rootDir && !filename.startsWith(rootDir)) {
+        console.log('Skipping file outside root:', filename);
+        continue;
+      }
 
-      // Extract HTML content (only main index.html, not nested ones)
-      if (filename === 'index.html' || filename.endsWith('/index.html')) {
+      // Remove root directory prefix from path
+      const relativePath = rootDir ? filename.substring(rootDir.length) : filename;
+      
+      console.log('Processing:', filename, '→', relativePath);
+
+      // Extract HTML content
+      if (relativePath === 'index.html') {
         htmlContent = await file.async('text');
-        console.log('Found HTML file:', filename);
+        console.log('Found main HTML file');
       }
       // Handle assets (images, CSS, JS)
       else if (
-        filename.match(/\.(jpg|jpeg|png|gif|webp|svg|css|js)$/i)
+        relativePath.match(/\.(jpg|jpeg|png|gif|webp|svg|css|js|woff|woff2|ttf|eot|otf)$/i)
       ) {
         const fileContent = await file.async('blob');
-        const fileExt = filename.split('.').pop();
         
-        // Keep the original path structure but sanitize
-        const uploadPath = `${templateId}/${filename}`;
+        // Upload with relative path (without root directory prefix)
+        const uploadPath = `${templateId}/${relativePath}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('templates')
           .upload(uploadPath, fileContent, {
@@ -64,7 +86,7 @@ Deno.serve(async (req) => {
           });
 
         if (uploadError) {
-          console.error('Error uploading asset:', uploadError);
+          console.error('Error uploading', relativePath, ':', uploadError);
           continue;
         }
 
@@ -73,19 +95,19 @@ Deno.serve(async (req) => {
           .from('templates')
           .getPublicUrl(uploadPath);
 
-        // Store with original filename as key
-        assetUrls[filename] = urlData.publicUrl;
-        console.log('Uploaded asset:', filename, '->', urlData.publicUrl);
+        // Store with relative path as key (matches HTML references)
+        assetUrls[relativePath] = urlData.publicUrl;
+        console.log('Uploaded:', relativePath, '→', urlData.publicUrl);
 
         // Track preview images
-        if (filename.match(/\.(jpg|jpeg|png|gif|webp)$/i) && previewImages.length < 3) {
+        if (relativePath.match(/\.(jpg|jpeg|png|gif|webp)$/i) && previewImages.length < 3) {
           previewImages.push(urlData.publicUrl);
         }
       }
     }
 
     if (!htmlContent) {
-      throw new Error('No HTML file found in ZIP');
+      throw new Error('No index.html file found in ZIP');
     }
 
     // Replace relative asset paths in HTML with public URLs
@@ -94,11 +116,11 @@ Deno.serve(async (req) => {
     // Sort paths by length (longest first) to handle nested paths correctly
     const sortedPaths = Object.entries(assetUrls).sort((a, b) => b[0].length - a[0].length);
     
-    for (const [originalPath, publicUrl] of sortedPaths) {
-      // Replace various path formats: href="path", src="path", url(path)
-      const escapedPath = originalPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    for (const [relativePath, publicUrl] of sortedPaths) {
+      // Escape special regex characters
+      const escapedPath = relativePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       
-      // Replace in attributes
+      // Replace in HTML attributes (href, src)
       processedHtml = processedHtml.replace(
         new RegExp(`(href|src)=["']${escapedPath}["']`, 'gi'),
         `$1="${publicUrl}"`
@@ -125,7 +147,9 @@ Deno.serve(async (req) => {
       throw updateError;
     }
 
-    console.log('Template processed successfully:', templateId);
+    console.log('✅ Template processed successfully');
+    console.log('  - Assets:', Object.keys(assetUrls).length);
+    console.log('  - Preview images:', previewImages.length);
 
     return new Response(
       JSON.stringify({ 
@@ -137,7 +161,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error processing template:', error);
+    console.error('❌ Error processing template:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),
