@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Upload, Heart, Church, PartyPopper } from "lucide-react";
+import { Sparkles, Upload, Heart, Church, PartyPopper, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
@@ -28,6 +28,7 @@ export default function Admin() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Form state
   const [nameEn, setNameEn] = useState("");
@@ -179,6 +180,46 @@ export default function Admin() {
     }
   };
 
+  const handleCleanupStorage = async () => {
+    if (!confirm("Are you sure you want to delete ALL files from templates storage? This cannot be undone!")) {
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      // List all files in templates bucket
+      const { data: files, error: listError } = await supabase.storage
+        .from('templates')
+        .list('', {
+          limit: 1000,
+          sortBy: { column: 'name', order: 'asc' }
+        });
+
+      if (listError) throw listError;
+
+      if (!files || files.length === 0) {
+        toast.info("No files to delete");
+        return;
+      }
+
+      // Delete all files
+      const filePaths = files.map(file => file.name);
+      const { error: deleteError } = await supabase.storage
+        .from('templates')
+        .remove(filePaths);
+
+      if (deleteError) throw deleteError;
+
+      toast.success(`Successfully deleted ${files.length} files from storage`);
+    } catch (error: any) {
+      toast.error("Error cleaning storage: " + error.message);
+      console.error("Error cleaning storage:", error);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -209,6 +250,33 @@ export default function Admin() {
           </h1>
           <p className="text-muted-foreground">{user?.email}</p>
         </div>
+
+        {/* Storage Cleanup */}
+        <Card className="max-w-3xl mx-auto shadow-elegant mb-8 border-destructive/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-6 w-6" />
+              Storage Cleanup
+            </CardTitle>
+            <CardDescription>
+              Delete all files from the templates storage bucket
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            <Button
+              variant="destructive"
+              onClick={handleCleanupStorage}
+              disabled={deleting}
+              className="w-full"
+            >
+              {deleting ? "Deleting..." : "Delete All Template Files"}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">
+              ⚠️ This will permanently delete all uploaded template files. Database records will remain intact.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Upload Form */}
         <Card className="max-w-3xl mx-auto shadow-elegant">
