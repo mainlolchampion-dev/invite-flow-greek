@@ -92,6 +92,7 @@ export default function Admin() {
 
     try {
       let zipFileUrl = null;
+      let templateId = null;
 
       // Upload ZIP file if provided
       if (zipFile) {
@@ -113,7 +114,7 @@ export default function Admin() {
         zipFileUrl = urlData.publicUrl;
       }
 
-      const { error } = await supabase
+      const { data: templateData, error } = await supabase
         .from("templates")
         .insert({
           name_en: nameEn,
@@ -127,10 +128,34 @@ export default function Admin() {
           has_location_map: hasLocationMap,
           has_rsvp: hasRsvp,
           is_active: true,
-          thumbnail_url: zipFileUrl, // Store ZIP URL for now
-        });
+          thumbnail_url: zipFileUrl,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+      
+      templateId = templateData.id;
+
+      // Process ZIP file if uploaded
+      if (zipFileUrl && templateId) {
+        console.log('Triggering ZIP processing for template:', templateId);
+        
+        // Call edge function to process ZIP in background
+        const { error: processError } = await supabase.functions.invoke('process-template-zip', {
+          body: { 
+            templateId, 
+            zipUrl: zipFileUrl 
+          },
+        });
+
+        if (processError) {
+          console.error('Error processing ZIP:', processError);
+          toast.error('Template uploaded but ZIP processing failed');
+        } else {
+          console.log('ZIP processing started successfully');
+        }
+      }
 
       toast.success(t.admin.success);
       
