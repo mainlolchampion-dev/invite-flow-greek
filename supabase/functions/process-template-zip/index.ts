@@ -16,13 +16,84 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Authentication check
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    // Verify admin role
+    const { data: roleData, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .single();
+
+    if (roleError || !roleData) {
+      return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), { 
+        status: 403, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
     const { templateId, zipUrl } = await req.json();
+    
+    // Input validation
+    if (!templateId || !zipUrl) {
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    // Validate templateId exists
+    const { data: template, error: templateError } = await supabase
+      .from('templates')
+      .select('id')
+      .eq('id', templateId)
+      .single();
+
+    if (templateError || !template) {
+      return new Response(JSON.stringify({ error: 'Template not found' }), { 
+        status: 404, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    // Validate zipUrl is from templates bucket
+    if (!zipUrl.startsWith(supabaseUrl + '/storage/v1/object/public/templates/')) {
+      return new Response(JSON.stringify({ error: 'Invalid ZIP URL - must be from templates bucket' }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
     console.log('Processing template:', templateId, 'from:', zipUrl);
 
     const zipResponse = await fetch(zipUrl);
     if (!zipResponse.ok) throw new Error(`Failed to download ZIP: ${zipResponse.statusText}`);
 
     const zipArrayBuffer = await (await zipResponse.blob()).arrayBuffer();
+    
+    // File size limit: 50MB
+    if (zipArrayBuffer.byteLength > 50 * 1024 * 1024) {
+      return new Response(JSON.stringify({ error: 'ZIP file too large (max 50MB)' }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
     const zip = await JSZip.loadAsync(zipArrayBuffer);
 
     let rootDir = '';

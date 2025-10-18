@@ -9,6 +9,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
+import { z } from "zod";
+
+const authSchema = z.object({
+  email: z.string().email("Invalid email address").max(255, "Email too long"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password too long")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+});
 
 export default function Auth() {
   const { t } = useTranslation();
@@ -30,6 +41,17 @@ export default function Auth() {
     if (isSignUp && password !== confirmPassword) {
       toast.error(t.auth.errors.passwordsDontMatch);
       return;
+    }
+
+    // Validate input
+    try {
+      authSchema.parse({ email, password });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        toast.error(firstError.message);
+        return;
+      }
     }
 
     setLoading(true);
