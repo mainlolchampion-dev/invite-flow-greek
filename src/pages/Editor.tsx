@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Navbar } from "@/components/Navbar";
 import { VisualEditor } from "@/components/VisualEditor";
+import { processTemplateHtml } from "@/components/HtmlProcessor";
 import { Sparkles, Save, ArrowLeft, Eye } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
@@ -83,16 +84,21 @@ export default function Editor() {
       setProjectName(data.project_name);
 
       // Load HTML: prefer modified_html, fallback to template html
+      let loadedHtml = "";
       if (data.modified_html) {
-        setHtml(data.modified_html);
+        loadedHtml = data.modified_html;
       } else if (data.template_id) {
         const { data: tpl } = await supabase
           .from("templates")
           .select("html_content")
           .eq("id", data.template_id)
           .maybeSingle();
-        setHtml(tpl?.html_content || "");
+        loadedHtml = tpl?.html_content || "";
       }
+      
+      // Process HTML to convert image-based names to editable text
+      const processedHtml = processTemplateHtml(loadedHtml);
+      setHtml(processedHtml);
       setHtmlLoaded(true);
     } catch (error: any) {
       toast.error(t.common.error);
