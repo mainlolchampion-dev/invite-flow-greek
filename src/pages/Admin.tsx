@@ -40,6 +40,7 @@ export default function Admin() {
   const [hasCountdown, setHasCountdown] = useState(false);
   const [hasLocationMap, setHasLocationMap] = useState(false);
   const [hasRsvp, setHasRsvp] = useState(false);
+  const [zipFile, setZipFile] = useState<File | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -90,6 +91,28 @@ export default function Admin() {
     setUploading(true);
 
     try {
+      let zipFileUrl = null;
+
+      // Upload ZIP file if provided
+      if (zipFile) {
+        const fileExt = zipFile.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `templates/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('templates')
+          .upload(filePath, zipFile);
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('templates')
+          .getPublicUrl(filePath);
+
+        zipFileUrl = urlData.publicUrl;
+      }
+
       const { error } = await supabase
         .from("templates")
         .insert({
@@ -104,6 +127,7 @@ export default function Admin() {
           has_location_map: hasLocationMap,
           has_rsvp: hasRsvp,
           is_active: true,
+          thumbnail_url: zipFileUrl, // Store ZIP URL for now
         });
 
       if (error) throw error;
@@ -121,6 +145,7 @@ export default function Admin() {
       setHasCountdown(false);
       setHasLocationMap(false);
       setHasRsvp(false);
+      setZipFile(null);
     } catch (error: any) {
       toast.error(t.admin.error);
       console.error("Error uploading template:", error);
@@ -318,6 +343,29 @@ export default function Admin() {
                     </Label>
                   </div>
                 </div>
+              </div>
+
+              {/* ZIP File Upload */}
+              <div className="space-y-2">
+                <Label htmlFor="zipFile">{t.admin.form.zipFile}</Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="zipFile"
+                    type="file"
+                    accept=".zip"
+                    onChange={(e) => setZipFile(e.target.files?.[0] || null)}
+                    className="cursor-pointer"
+                  />
+                  {zipFile && (
+                    <Badge variant="secondary" className="flex items-center gap-2">
+                      <Upload className="h-3 w-3" />
+                      {zipFile.name}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Upload ZIP file with HTML template from Envato Elements
+                </p>
               </div>
 
               {/* Submit Button */}
