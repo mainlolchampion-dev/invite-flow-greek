@@ -215,103 +215,110 @@ export default function Editor() {
           </p>
         </div>
 
-        {/* Editor Content */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Βασικές Ρυθμίσεις</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="projectName">Όνομα Πρόσκλησης</Label>
-                <Input
-                  id="projectName"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="π.χ. Γάμος Μαρίας & Γιάννη"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button 
-                  onClick={handleSave} 
-                  disabled={saving}
-                  className="flex-1"
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  {saving ? "Αποθήκευση..." : "Αποθήκευση"}
-                </Button>
-                
-                <Button 
-                  onClick={handlePublish} 
-                  disabled={saving}
-                  variant={project?.is_published ? "outline" : "default"}
-                  className="flex-1"
-                >
-                  {project?.is_published ? "Απόσυρση" : "Δημοσίευση"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Visual Editor</span>
-                {project?.is_published && (
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(`/p/${project.slug}`, '_blank')}
-                  >
-                    <Eye className="mr-2 h-4 w-4" />Προεπισκόπηση
-                  </Button>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {htmlLoaded && html ? (
-                <VisualEditor 
-                  html={html} 
-                  onSave={handleHtmlSave}
-                  isSaving={saving}
-                />
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Φόρτωση περιεχομένου...
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {project?.is_published && (
-            <Card className="border-primary/50">
+        {/* Editor Content - Split View */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column - Settings */}
+          <div className="lg:col-span-4 space-y-6">
+            <Card>
               <CardHeader>
-                <CardTitle>Δημόσια Πρόσκληση</CardTitle>
+                <CardTitle>Βασικές Ρυθμίσεις</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Η πρόσκλησή σας είναι διαθέσιμη στη διεύθυνση:
-                </p>
-                <div className="flex gap-2">
-                  <Input 
-                    readOnly 
-                    value={`${window.location.origin}/p/${project.slug}`}
-                    className="flex-1"
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="projectName">Όνομα Πρόσκλησης</Label>
+                  <Input
+                    id="projectName"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    placeholder="π.χ. Γάμος Μαρίας & Γιάννη"
                   />
+                </div>
+
+                <div className="flex gap-2">
                   <Button 
-                    variant="outline"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/p/${project.slug}`);
-                      toast.success("Η διεύθυνση αντιγράφηκε");
-                    }}
+                    onClick={handleSave} 
+                    disabled={saving}
+                    className="flex-1"
                   >
-                    Αντιγραφή
+                    <Save className="mr-2 h-4 w-4" />
+                    {saving ? "Αποθήκευση..." : "Αποθήκευση"}
+                  </Button>
+                  
+                  <Button 
+                    onClick={handlePublish} 
+                    disabled={saving}
+                    variant={project?.is_published ? "outline" : "default"}
+                    className="flex-1"
+                  >
+                    {project?.is_published ? "Απόσυρση" : "Δημοσίευση"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
-          )}
+
+            {project?.is_published && (
+              <Card className="border-primary/50">
+                <CardHeader>
+                  <CardTitle>Δημόσια Πρόσκληση</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Η πρόσκλησή σας είναι διαθέσιμη στη διεύθυνση:
+                  </p>
+                  <div className="flex gap-2">
+                    <Input 
+                      readOnly 
+                      value={`${window.location.origin}/p/${project.slug}`}
+                      className="flex-1 text-xs"
+                    />
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/p/${project.slug}`);
+                        toast.success("Η διεύθυνση αντιγράφηκε");
+                      }}
+                    >
+                      Αντιγραφή
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Right Column - Visual Editor */}
+          <div className="lg:col-span-8">
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Visual Editor</span>
+                  {project?.is_published && (
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(`/p/${project.slug}`, '_blank')}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />Προεπισκόπηση
+                    </Button>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {htmlLoaded && html ? (
+                  <VisualEditor 
+                    html={html} 
+                    onSave={handleHtmlSave}
+                    isSaving={saving}
+                  />
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Φόρτωση περιεχομένου...
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
