@@ -173,10 +173,10 @@ export const VisualEditor = ({ html, onSave, isSaving }: VisualEditorProps) => {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-2 items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Κάντε κλικ σε κείμενα για επεξεργασία ή σε εικόνες για αλλαγή
+    <div className="space-y-3">
+      <div className="flex gap-2 items-center justify-between bg-muted/50 p-3 rounded-lg">
+        <p className="text-xs text-muted-foreground font-medium">
+          💡 Κλικ σε κείμενα ή εικόνες για επεξεργασία
         </p>
         <div className="flex gap-2">
           {hasChanges && (
@@ -184,8 +184,9 @@ export const VisualEditor = ({ html, onSave, isSaving }: VisualEditorProps) => {
               variant="outline" 
               size="sm"
               onClick={handleReset}
+              className="h-8 text-xs"
             >
-              <Undo className="mr-2 h-4 w-4" />
+              <Undo className="mr-1 h-3 w-3" />
               Ακύρωση
             </Button>
           )}
@@ -193,17 +194,18 @@ export const VisualEditor = ({ html, onSave, isSaving }: VisualEditorProps) => {
             size="sm"
             onClick={handleSave}
             disabled={!hasChanges || isSaving}
+            className="h-8 text-xs"
           >
-            <Save className="mr-2 h-4 w-4" />
+            <Save className="mr-1 h-3 w-3" />
             {isSaving ? "Αποθήκευση..." : "Αποθήκευση"}
           </Button>
         </div>
       </div>
       
-      <div className="border rounded-lg overflow-hidden bg-white">
+      <div className="border-2 border-muted rounded-lg overflow-hidden bg-white shadow-inner">
         <iframe
           ref={iframeRef}
-          className="w-full h-[calc(100vh-300px)] min-h-[700px]"
+          className="w-full h-[calc(100vh-250px)] min-h-[750px]"
           sandbox="allow-same-origin allow-scripts"
           title="Visual Editor"
         />

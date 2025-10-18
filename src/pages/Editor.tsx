@@ -195,9 +195,9 @@ export default function Editor() {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="container mx-auto px-4 pt-24 pb-12 max-w-4xl">
+      <div className="container mx-auto px-4 pt-24 pb-12">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <Button 
             variant="ghost" 
             onClick={() => navigate("/dashboard")}
@@ -207,48 +207,55 @@ export default function Editor() {
             Πίσω στο Dashboard
           </Button>
           
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
-            Επεξεργασία Πρόσκλησης
-          </h1>
-          <p className="text-muted-foreground">
-            {project?.slug}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Επεξεργασία Πρόσκλησης
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {project?.slug}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Editor Content - Split View */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column - Settings */}
-          <div className="lg:col-span-3 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Βασικές Ρυθμίσεις</CardTitle>
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+          {/* Left Column - Compact Settings */}
+          <div className="xl:col-span-2 space-y-4">
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Ρυθμίσεις</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 <div className="space-y-2">
-                  <Label htmlFor="projectName">Όνομα Πρόσκλησης</Label>
+                  <Label htmlFor="projectName" className="text-xs">Όνομα</Label>
                   <Input
                     id="projectName"
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
-                    placeholder="π.χ. Γάμος Μαρίας & Γιάννη"
+                    placeholder="Όνομα πρόσκλησης"
+                    className="h-8 text-sm"
                   />
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2">
                   <Button 
                     onClick={handleSave} 
                     disabled={saving}
-                    className="flex-1"
+                    size="sm"
+                    className="w-full"
                   >
-                    <Save className="mr-2 h-4 w-4" />
-                    {saving ? "Αποθήκευση..." : "Αποθήκευση"}
+                    <Save className="mr-2 h-3 w-3" />
+                    Αποθήκευση
                   </Button>
                   
                   <Button 
                     onClick={handlePublish} 
                     disabled={saving}
                     variant={project?.is_published ? "outline" : "default"}
-                    className="flex-1"
+                    size="sm"
+                    className="w-full"
                   >
                     {project?.is_published ? "Απόσυρση" : "Δημοσίευση"}
                   </Button>
@@ -257,42 +264,41 @@ export default function Editor() {
             </Card>
 
             {project?.is_published && (
-              <Card className="border-primary/50">
-                <CardHeader>
-                  <CardTitle>Δημόσια Πρόσκληση</CardTitle>
+              <Card className="border-primary/50 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Δημόσια URL</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Η πρόσκλησή σας είναι διαθέσιμη στη διεύθυνση:
-                  </p>
-                  <div className="flex gap-2">
-                    <Input 
-                      readOnly 
-                      value={`${window.location.origin}/p/${project.slug}`}
-                      className="flex-1 text-xs"
-                    />
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/p/${project.slug}`);
-                        toast.success("Η διεύθυνση αντιγράφηκε");
-                      }}
-                    >
-                      Αντιγραφή
-                    </Button>
-                  </div>
+                <CardContent className="space-y-2">
+                  <Input 
+                    readOnly 
+                    value={`${window.location.origin}/p/${project.slug}`}
+                    className="h-8 text-xs"
+                  />
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/p/${project.slug}`);
+                      toast.success("Αντιγράφηκε");
+                    }}
+                  >
+                    Αντιγραφή
+                  </Button>
                 </CardContent>
               </Card>
             )}
           </div>
 
-          {/* Right Column - Visual Editor */}
-          <div className="lg:col-span-9">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Visual Editor</span>
+          {/* Right Column - Large Visual Editor */}
+          <div className="xl:col-span-10">
+            <Card className="h-full shadow-lg border-2">
+              <CardHeader className="pb-3 border-b bg-muted/30">
+                <CardTitle className="flex items-center justify-between text-lg">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                    Visual Editor
+                  </span>
                   {project?.is_published && (
                     <Button 
                       variant="outline"
@@ -304,7 +310,7 @@ export default function Editor() {
                   )}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4">
                 {htmlLoaded && html ? (
                   <VisualEditor 
                     html={html} 
@@ -312,8 +318,9 @@ export default function Editor() {
                     isSaving={saving}
                   />
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Φόρτωση περιεχομένου...
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Sparkles className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+                    <p>Φόρτωση περιεχομένου...</p>
                   </div>
                 )}
               </CardContent>
