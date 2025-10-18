@@ -218,7 +218,7 @@ export default function Editor() {
         {/* Editor Content - Split View */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column - Settings */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-3 space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Βασικές Ρυθμίσεις</CardTitle>
@@ -288,7 +288,7 @@ export default function Editor() {
           </div>
 
           {/* Right Column - Visual Editor */}
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-9">
             <Card className="h-full">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">

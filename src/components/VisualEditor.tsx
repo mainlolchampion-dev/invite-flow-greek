@@ -203,7 +203,7 @@ export const VisualEditor = ({ html, onSave, isSaving }: VisualEditorProps) => {
       <div className="border rounded-lg overflow-hidden bg-white">
         <iframe
           ref={iframeRef}
-          className="w-full h-[600px]"
+          className="w-full h-[calc(100vh-300px)] min-h-[700px]"
           sandbox="allow-same-origin allow-scripts"
           title="Visual Editor"
         />
