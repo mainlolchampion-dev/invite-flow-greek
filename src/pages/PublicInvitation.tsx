@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Home, Calendar, MapPin } from "lucide-react";
+import DOMPurify from "dompurify";
 
 interface Project {
   id: string;
@@ -105,10 +106,28 @@ export default function PublicInvitation() {
   const htmlContent = project.modified_html || template?.html_content;
   
   if (htmlContent) {
+    // Sanitize HTML to prevent XSS attacks
+    const sanitizedHtml = DOMPurify.sanitize(htmlContent, {
+      ALLOWED_TAGS: [
+        'div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'a', 'span', 
+        'br', 'strong', 'em', 'ul', 'ol', 'li', 'section', 'header', 'footer', 
+        'nav', 'article', 'aside', 'main', 'figure', 'figcaption', 'button',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td', 'form', 'input', 'label'
+      ],
+      ALLOWED_ATTR: [
+        'class', 'id', 'href', 'src', 'alt', 'style', 'target', 'rel',
+        'width', 'height', 'type', 'placeholder', 'name', 'value'
+      ],
+      ALLOW_DATA_ATTR: false,
+      FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'link', 'style', 'base'],
+      FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 
+                    'onfocus', 'onblur', 'onchange', 'onsubmit', 'oninput']
+    });
+    
     return (
       <div 
         className="min-h-screen"
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
+        dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
       />
     );
   }
