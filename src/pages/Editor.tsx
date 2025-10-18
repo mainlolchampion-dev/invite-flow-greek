@@ -295,12 +295,15 @@ export default function Editor() {
                 <Button onClick={handleHtmlSave} disabled={!htmlLoaded || saving} className="flex-1">
                   <Save className="mr-2 h-4 w-4" />Αποθήκευση Περιεχομένου
                 </Button>
-              </div>
-              <div className="border rounded-lg overflow-hidden">
-                <div className="p-3 text-sm text-muted-foreground">Προεπισκόπηση</div>
-                <div className="p-0">
-                  <div dangerouslySetInnerHTML={{ __html: html }} />
-                </div>
+                {project?.is_published && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.open(`/p/${project.slug}`, '_blank')}
+                    className="flex-1"
+                  >
+                    <Eye className="mr-2 h-4 w-4" />Προεπισκόπηση
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
