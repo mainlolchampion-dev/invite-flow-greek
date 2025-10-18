@@ -15,9 +15,15 @@ interface Project {
   modified_html: string | null;
 }
 
+interface Template {
+  html_content: string | null;
+  asset_urls: any;
+}
+
 export default function PublicInvitation() {
   const { slug } = useParams<{ slug: string }>();
   const [project, setProject] = useState<Project | null>(null);
+  const [template, setTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -40,6 +46,19 @@ export default function PublicInvitation() {
       }
 
       setProject(data);
+
+      // Load template if available
+      if (data.template_id) {
+        const { data: templateData } = await supabase
+          .from("templates")
+          .select("html_content, asset_urls")
+          .eq("id", data.template_id)
+          .single();
+
+        if (templateData) {
+          setTemplate(templateData);
+        }
+      }
     } catch (error: any) {
       console.error("Error loading project:", error);
       setNotFound(true);
@@ -82,12 +101,14 @@ export default function PublicInvitation() {
     );
   }
 
-  // If there's modified HTML, render it
-  if (project.modified_html) {
+  // If there's modified HTML or template HTML, render it
+  const htmlContent = project.modified_html || template?.html_content;
+  
+  if (htmlContent) {
     return (
       <div 
         className="min-h-screen"
-        dangerouslySetInnerHTML={{ __html: project.modified_html }}
+        dangerouslySetInnerHTML={{ __html: htmlContent }}
       />
     );
   }
