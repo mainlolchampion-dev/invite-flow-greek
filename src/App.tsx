@@ -9,7 +9,6 @@ import Dashboard from "./pages/Dashboard";
 import Templates from "./pages/Templates";
 import Admin from "./pages/Admin";
 import Editor from "./pages/Editor";
-import TemplateProcessor from "./pages/TemplateProcessor";
 import PublicInvitation from "./pages/PublicInvitation";
 import NotFound from "./pages/NotFound";
 
@@ -27,7 +26,6 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/editor/:projectId" element={<Editor />} />
-          <Route path="/template-processor" element={<TemplateProcessor />} />
           <Route path="/p/:slug" element={<PublicInvitation />} />
           <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
