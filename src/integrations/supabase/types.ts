@@ -14,16 +14,269 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      rsvp_responses: {
+        Row: {
+          attending: boolean | null
+          guest_count: number | null
+          guest_email: string | null
+          guest_name: string
+          guest_phone: string | null
+          id: string
+          invitation_id: string
+          message: string | null
+          responded_at: string
+        }
+        Insert: {
+          attending?: boolean | null
+          guest_count?: number | null
+          guest_email?: string | null
+          guest_name: string
+          guest_phone?: string | null
+          id?: string
+          invitation_id: string
+          message?: string | null
+          responded_at?: string
+        }
+        Update: {
+          attending?: boolean | null
+          guest_count?: number | null
+          guest_email?: string | null
+          guest_name?: string
+          guest_phone?: string | null
+          id?: string
+          invitation_id?: string
+          message?: string | null
+          responded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rsvp_responses_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "user_invitations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      templates: {
+        Row: {
+          asset_urls: Json | null
+          created_at: string
+          description_el: string | null
+          description_en: string | null
+          editable_fields: Json | null
+          event_type: string
+          has_countdown: boolean | null
+          has_location_map: boolean | null
+          has_rsvp: boolean | null
+          html_content: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          name_el: string
+          name_en: string
+          preview_images: string[] | null
+          price: number | null
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          asset_urls?: Json | null
+          created_at?: string
+          description_el?: string | null
+          description_en?: string | null
+          editable_fields?: Json | null
+          event_type: string
+          has_countdown?: boolean | null
+          has_location_map?: boolean | null
+          has_rsvp?: boolean | null
+          html_content?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          name_el: string
+          name_en: string
+          preview_images?: string[] | null
+          price?: number | null
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asset_urls?: Json | null
+          created_at?: string
+          description_el?: string | null
+          description_en?: string | null
+          editable_fields?: Json | null
+          event_type?: string
+          has_countdown?: boolean | null
+          has_location_map?: boolean | null
+          has_rsvp?: boolean | null
+          html_content?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          name_el?: string
+          name_en?: string
+          preview_images?: string[] | null
+          price?: number | null
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_invitations: {
+        Row: {
+          created_at: string
+          custom_data: Json | null
+          event_date: string | null
+          event_location: Json | null
+          event_time: string | null
+          event_type: string
+          id: string
+          project_id: string | null
+          rsvp_enabled: boolean | null
+          template_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_data?: Json | null
+          event_date?: string | null
+          event_location?: Json | null
+          event_time?: string | null
+          event_type: string
+          id?: string
+          project_id?: string | null
+          rsvp_enabled?: boolean | null
+          template_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_data?: Json | null
+          event_date?: string | null
+          event_location?: Json | null
+          event_time?: string | null
+          event_type?: string
+          id?: string
+          project_id?: string | null
+          rsvp_enabled?: boolean | null
+          template_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_invitations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "user_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invitations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_projects: {
+        Row: {
+          created_at: string
+          custom_css: string | null
+          id: string
+          is_published: boolean | null
+          modified_html: string | null
+          preferred_language: string | null
+          project_name: string
+          published_url: string | null
+          slug: string
+          template_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_css?: string | null
+          id?: string
+          is_published?: boolean | null
+          modified_html?: string | null
+          preferred_language?: string | null
+          project_name: string
+          published_url?: string | null
+          slug: string
+          template_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_css?: string | null
+          id?: string
+          is_published?: boolean | null
+          modified_html?: string | null
+          preferred_language?: string | null
+          project_name?: string
+          published_url?: string | null
+          slug?: string
+          template_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_projects_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_slug: {
+        Args: { base_text: string }
+        Returns: string
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +403,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

@@ -1,11 +1,44 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useTranslation } from "@/hooks/useLanguage";
-import { Sparkles } from "lucide-react";
+import { Sparkles, User, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 export const Navbar = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user || null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success(t.nav.signOut);
+      navigate("/");
+    } catch (error) {
+      toast.error(t.common.error);
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-lg">
@@ -28,15 +61,39 @@ export const Navbar = () => {
               <Link to="/templates">{t.nav.templates}</Link>
             </Button>
             
+            {user && (
+              <Button variant="ghost" asChild>
+                <Link to="/dashboard">{t.nav.dashboard}</Link>
+              </Button>
+            )}
+            
             <LanguageSwitcher />
             
-            <Button variant="outline" asChild>
-              <Link to="/auth">{t.nav.signIn}</Link>
-            </Button>
-            
-            <Button asChild className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
-              <Link to="/auth">{t.nav.getStarted}</Link>
-            </Button>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <User className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {t.nav.signOut}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Button variant="outline" asChild>
+                  <Link to="/auth">{t.nav.signIn}</Link>
+                </Button>
+                
+                <Button asChild className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+                  <Link to="/auth">{t.nav.getStarted}</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
