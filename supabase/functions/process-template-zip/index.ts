@@ -42,8 +42,8 @@ Deno.serve(async (req) => {
 
       console.log('Processing file:', filename);
 
-      // Extract HTML content
-      if (filename.endsWith('.html')) {
+      // Extract HTML content (only main index.html, not nested ones)
+      if (filename === 'index.html' || filename.endsWith('/index.html')) {
         htmlContent = await file.async('text');
         console.log('Found HTML file:', filename);
       }
@@ -53,10 +53,9 @@ Deno.serve(async (req) => {
       ) {
         const fileContent = await file.async('blob');
         const fileExt = filename.split('.').pop();
-        const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
         
-        // Upload asset to storage
-        const uploadPath = `${templateId}/${sanitizedFilename}`;
+        // Keep the original path structure but sanitize
+        const uploadPath = `${templateId}/${filename}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('templates')
           .upload(uploadPath, fileContent, {
@@ -74,6 +73,7 @@ Deno.serve(async (req) => {
           .from('templates')
           .getPublicUrl(uploadPath);
 
+        // Store with original filename as key
         assetUrls[filename] = urlData.publicUrl;
         console.log('Uploaded asset:', filename, '->', urlData.publicUrl);
 
@@ -90,9 +90,25 @@ Deno.serve(async (req) => {
 
     // Replace relative asset paths in HTML with public URLs
     let processedHtml = htmlContent;
-    for (const [originalPath, publicUrl] of Object.entries(assetUrls)) {
-      const regex = new RegExp(originalPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-      processedHtml = processedHtml.replace(regex, publicUrl);
+    
+    // Sort paths by length (longest first) to handle nested paths correctly
+    const sortedPaths = Object.entries(assetUrls).sort((a, b) => b[0].length - a[0].length);
+    
+    for (const [originalPath, publicUrl] of sortedPaths) {
+      // Replace various path formats: href="path", src="path", url(path)
+      const escapedPath = originalPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Replace in attributes
+      processedHtml = processedHtml.replace(
+        new RegExp(`(href|src)=["']${escapedPath}["']`, 'gi'),
+        `$1="${publicUrl}"`
+      );
+      
+      // Replace in CSS url()
+      processedHtml = processedHtml.replace(
+        new RegExp(`url\\(["']?${escapedPath}["']?\\)`, 'gi'),
+        `url("${publicUrl}")`
+      );
     }
 
     // Update template in database

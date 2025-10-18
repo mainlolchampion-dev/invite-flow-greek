@@ -104,28 +104,6 @@ export default function PublicInvitation() {
   // If there's modified HTML or template HTML, render it
   const htmlContent = project.modified_html || template?.html_content;
   
-  if (htmlContent && template?.asset_urls) {
-    // Replace relative paths with Supabase Storage URLs
-    let processedHtml = htmlContent;
-    const assetUrls = template.asset_urls as Record<string, string>;
-    
-    // Replace all asset references with their Supabase Storage URLs
-    Object.entries(assetUrls).forEach(([path, url]) => {
-      // Replace various path formats
-      processedHtml = processedHtml.replace(new RegExp(`href="${path}"`, 'g'), `href="${url}"`);
-      processedHtml = processedHtml.replace(new RegExp(`src="${path}"`, 'g'), `src="${url}"`);
-      processedHtml = processedHtml.replace(new RegExp(`href='${path}'`, 'g'), `href='${url}'`);
-      processedHtml = processedHtml.replace(new RegExp(`src='${path}'`, 'g'), `src='${url}'`);
-    });
-
-    return (
-      <div 
-        className="min-h-screen"
-        dangerouslySetInnerHTML={{ __html: processedHtml }}
-      />
-    );
-  }
-
   if (htmlContent) {
     return (
       <div 
