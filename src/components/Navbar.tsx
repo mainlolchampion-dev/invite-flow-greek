@@ -13,22 +13,47 @@ export const Navbar = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
+      if (session?.user) {
+        checkAdminRole(session.user.id);
+      }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user || null);
+        if (session?.user) {
+          checkAdminRole(session.user.id);
+        } else {
+          setIsAdmin(false);
+        }
       }
     );
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const checkAdminRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      setIsAdmin(!!data);
+    } catch (error) {
+      console.error("Error checking admin role:", error);
+      setIsAdmin(false);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -62,9 +87,17 @@ export const Navbar = () => {
             </Button>
             
             {user && (
-              <Button variant="ghost" asChild>
-                <Link to="/dashboard">{t.nav.dashboard}</Link>
-              </Button>
+              <>
+                <Button variant="ghost" asChild>
+                  <Link to="/dashboard">{t.nav.dashboard}</Link>
+                </Button>
+                
+                {isAdmin && (
+                  <Button variant="ghost" asChild>
+                    <Link to="/admin">{t.nav.adminPanel}</Link>
+                  </Button>
+                )}
+              </>
             )}
             
             <LanguageSwitcher />
