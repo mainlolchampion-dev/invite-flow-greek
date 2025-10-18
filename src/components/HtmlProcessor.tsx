@@ -1,15 +1,15 @@
-// Helper to convert image-based names to editable text
+// Helper to convert image-based names to editable text and make all content editable
 export const processTemplateHtml = (html: string): string => {
   if (!html) return html;
   
-  // Add custom styles for text-based names
+  // Add comprehensive custom styles for all editable elements
   const customStyles = `
     <style>
       /* Custom styles for editable text logo and names */
       .wd_text_logo {
         font-family: 'Allura', cursive;
         font-size: 48px;
-        color: #ff6b8a;
+        color: var(--primary-color, #ff6b8a);
         margin: 0;
         padding: 20px 0;
         text-align: center;
@@ -18,7 +18,7 @@ export const processTemplateHtml = (html: string): string => {
         display: inline-block;
       }
       .wd_text_logo .and {
-        color: #ff6b8a;
+        color: var(--primary-color, #ff6b8a);
         font-size: 36px;
         margin: 0 10px;
       }
@@ -44,12 +44,25 @@ export const processTemplateHtml = (html: string): string => {
       }
       .wd_names_hero .and-symbol {
         font-size: 80px;
-        color: #ff6b8a;
+        color: var(--primary-color, #ff6b8a);
         display: inline-block;
         margin: 0 20px;
       }
       .wd_names_hero .second-name {
         display: block;
+      }
+      
+      /* Make contenteditable attributes work properly */
+      [contenteditable="false"] {
+        -webkit-user-select: none !important;
+        user-select: none !important;
+      }
+      
+      /* Color variable system */
+      :root {
+        --primary-color: #ff6b8a;
+        --secondary-color: #333;
+        --background-color: #f5f5f5;
       }
     </style>
   `;
@@ -87,10 +100,24 @@ export const processTemplateHtml = (html: string): string => {
     heroNamesReplacement
   );
   
+  // Remove all contenteditable="false" attributes to make everything editable by the Visual Editor
+  processedHtml = processedHtml.replace(/contenteditable="false"/gi, '');
+  
   // Insert custom styles before </head>
   if (processedHtml.includes('</head>') && !processedHtml.includes('wd_text_logo')) {
     processedHtml = processedHtml.replace('</head>', `${customStyles}</head>`);
   }
   
   return processedHtml;
+};
+
+// Apply theme colors to HTML
+export const applyThemeColors = (html: string, primaryColor: string): string => {
+  if (!html) return html;
+  
+  // Replace CSS variable in the HTML
+  return html.replace(
+    /--primary-color:\s*#[a-fA-F0-9]{6};/g,
+    `--primary-color: ${primaryColor};`
+  );
 };

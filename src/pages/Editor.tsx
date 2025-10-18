@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Navbar } from "@/components/Navbar";
 import { VisualEditor } from "@/components/VisualEditor";
-import { processTemplateHtml } from "@/components/HtmlProcessor";
+import { processTemplateHtml, applyThemeColors } from "@/components/HtmlProcessor";
+import { ColorPicker } from "@/components/ColorPicker";
+import { GalleryManager } from "@/components/GalleryManager";
 import { Sparkles, Save, ArrowLeft, Eye } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
@@ -34,6 +36,8 @@ export default function Editor() {
   const [saving, setSaving] = useState(false);
   const [html, setHtml] = useState<string>("");
   const [htmlLoaded, setHtmlLoaded] = useState(false);
+  const [primaryColor, setPrimaryColor] = useState("#ff6b8a");
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -182,6 +186,18 @@ export default function Editor() {
     }
   };
 
+  const handleColorChange = (color: string) => {
+    setPrimaryColor(color);
+    const updatedHtml = applyThemeColors(html, color);
+    setHtml(updatedHtml);
+    toast.success("Το χρώμα άλλαξε - πάτησε Αποθήκευση");
+  };
+
+  const handleGalleryUpload = (images: string[]) => {
+    setGalleryImages(images);
+    toast.info("Φωτογραφίες προστέθηκαν - κάνε κλικ στις εικόνες του template για να τις αντικαταστήσεις");
+  };
+
 
   if (loading) {
     return (
@@ -268,6 +284,15 @@ export default function Editor() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Color Picker */}
+            <ColorPicker 
+              currentColor={primaryColor}
+              onColorChange={handleColorChange}
+            />
+
+            {/* Gallery Manager */}
+            <GalleryManager onImagesUpload={handleGalleryUpload} />
 
             {project?.is_published && (
               <Card className="border-primary/50 shadow-sm">
