@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Navbar } from "@/components/Navbar";
-import { Sparkles, Save, ArrowLeft, Upload, Eye } from "lucide-react";
+import { VisualEditor } from "@/components/VisualEditor";
+import { Sparkles, Save, ArrowLeft, Eye } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
@@ -156,15 +156,17 @@ export default function Editor() {
     }
   };
 
-  const handleHtmlSave = async () => {
+  const handleHtmlSave = async (modifiedHtml?: string) => {
     if (!project) return;
     setSaving(true);
     try {
+      const contentToSave = modifiedHtml || html;
       const { error } = await supabase
         .from("user_projects")
-        .update({ modified_html: html, updated_at: new Date().toISOString() })
+        .update({ modified_html: contentToSave, updated_at: new Date().toISOString() })
         .eq("id", project.id);
       if (error) throw error;
+      setHtml(contentToSave);
       toast.success("Το περιεχόμενο αποθηκεύτηκε");
     } catch (error: any) {
       toast.error(t.common.error);
@@ -174,23 +176,6 @@ export default function Editor() {
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !project) return;
-    try {
-      const path = `user-projects/${project.id}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('templates')
-        .upload(path, file, { upsert: true, contentType: file.type });
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from('templates').getPublicUrl(path);
-      await navigator.clipboard.writeText(urlData.publicUrl);
-      toast.success("Το URL της εικόνας αντιγράφηκε στο clipboard");
-    } catch (error) {
-      console.error(error);
-      toast.error(t.common.error);
-    }
-  };
 
   if (loading) {
     return (
@@ -271,40 +256,31 @@ export default function Editor() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Αρχεία & Εικόνες</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="imageUpload">Ανέβασμα εικόνας</Label>
-                <Input id="imageUpload" type="file" accept="image/*" onChange={handleImageUpload} />
-                <p className="text-xs text-muted-foreground">Μετά το ανέβασμα, το URL αντιγράφεται αυτόματα στο clipboard για να το επικολλήσεις στο HTML.</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Περιεχόμενο HTML</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="htmlContent">Επεξεργασία</Label>
-                <Textarea id="htmlContent" className="min-h-[300px] font-mono text-sm" value={html} onChange={(e) => setHtml(e.target.value)} />
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={handleHtmlSave} disabled={!htmlLoaded || saving} className="flex-1">
-                  <Save className="mr-2 h-4 w-4" />Αποθήκευση Περιεχομένου
-                </Button>
+              <CardTitle className="flex items-center justify-between">
+                <span>Visual Editor</span>
                 {project?.is_published && (
                   <Button 
                     variant="outline"
+                    size="sm"
                     onClick={() => window.open(`/p/${project.slug}`, '_blank')}
-                    className="flex-1"
                   >
                     <Eye className="mr-2 h-4 w-4" />Προεπισκόπηση
                   </Button>
                 )}
-              </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {htmlLoaded && html ? (
+                <VisualEditor 
+                  html={html} 
+                  onSave={handleHtmlSave}
+                  isSaving={saving}
+                />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Φόρτωση περιεχομένου...
+                </div>
+              )}
             </CardContent>
           </Card>
 
