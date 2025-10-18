@@ -17,158 +17,117 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { templateId, zipUrl } = await req.json();
-    
     console.log('Processing template:', templateId, 'from:', zipUrl);
 
-    // Download ZIP file from storage
     const zipResponse = await fetch(zipUrl);
-    if (!zipResponse.ok) {
-      throw new Error(`Failed to download ZIP: ${zipResponse.statusText}`);
-    }
+    if (!zipResponse.ok) throw new Error(`Failed to download ZIP: ${zipResponse.statusText}`);
 
-    const zipBlob = await zipResponse.blob();
-    const zipArrayBuffer = await zipBlob.arrayBuffer();
-    
-    // Load ZIP file
+    const zipArrayBuffer = await (await zipResponse.blob()).arrayBuffer();
     const zip = await JSZip.loadAsync(zipArrayBuffer);
-    
-    let htmlContent = '';
-    const assetUrls: { [key: string]: string } = {};
-    const previewImages: string[] = [];
-    let rootDir = '';
 
-    // First pass: find root directory containing index.html
-    for (const [filename] of Object.entries(zip.files)) {
-      if (filename.endsWith('index.html')) {
-        const parts = filename.split('/');
-        if (parts.length > 1) {
-          // Get all parts except the filename
-          rootDir = parts.slice(0, -1).join('/') + '/';
-        }
-        console.log('Found root directory:', rootDir || '(root)');
+    let rootDir = '';
+    let htmlContent = '';
+    const assetUrls: Record<string, string> = {};
+    const previewImages: string[] = [];
+
+    // 1) Detect root directory (folder that contains index.html)
+    for (const [name] of Object.entries(zip.files)) {
+      if (name.endsWith('index.html')) {
+        const parts = name.split('/');
+        if (parts.length > 1) rootDir = parts.slice(0, -1).join('/') + '/';
         break;
       }
     }
+    console.log('Root dir:', rootDir || '(root)');
 
-    // Process all files in ZIP
-    for (const [filename, file] of Object.entries(zip.files)) {
+    // Collect files by type
+    const cssFiles: Array<{ path: string; file: JSZip.JSZipObject }> = [];
+
+    // 2) First pass: upload all non-CSS assets and read HTML
+    for (const [name, file] of Object.entries(zip.files)) {
       if (file.dir) continue;
+      if (rootDir && !name.startsWith(rootDir)) continue;
+      const rel = rootDir ? name.substring(rootDir.length) : name;
 
-      // Skip files not in root directory if root dir exists
-      if (rootDir && !filename.startsWith(rootDir)) {
-        console.log('Skipping file outside root:', filename);
+      if (rel === 'index.html') {
+        htmlContent = await file.async('text');
         continue;
       }
 
-      // Remove root directory prefix from path
-      const relativePath = rootDir ? filename.substring(rootDir.length) : filename;
-      
-      console.log('Processing:', filename, '→', relativePath);
-
-      // Extract HTML content
-      if (relativePath === 'index.html') {
-        htmlContent = await file.async('text');
-        console.log('Found main HTML file');
+      if (/\.(css)$/i.test(rel)) {
+        cssFiles.push({ path: rel, file });
+        continue;
       }
-      // Handle assets (images, CSS, JS)
-      else if (
-        relativePath.match(/\.(jpg|jpeg|png|gif|webp|svg|css|js|woff|woff2|ttf|eot|otf)$/i)
-      ) {
-        const fileContent = await file.async('blob');
-        
-        // Upload with relative path (without root directory prefix)
-        const uploadPath = `${templateId}/${relativePath}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+
+      if (/\.(jpg|jpeg|png|gif|webp|svg|js|woff|woff2|ttf|eot|otf)$/i.test(rel)) {
+        const blob = await file.async('blob');
+        const uploadPath = `${templateId}/${rel}`;
+        const { error: uploadError } = await supabase.storage
           .from('templates')
-          .upload(uploadPath, fileContent, {
-            contentType: fileContent.type || 'application/octet-stream',
-            upsert: true,
-          });
-
-        if (uploadError) {
-          console.error('Error uploading', relativePath, ':', uploadError);
-          continue;
-        }
-
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('templates')
-          .getPublicUrl(uploadPath);
-
-        // Store with relative path as key (matches HTML references)
-        assetUrls[relativePath] = urlData.publicUrl;
-        console.log('Uploaded:', relativePath, '→', urlData.publicUrl);
-
-        // Track preview images
-        if (relativePath.match(/\.(jpg|jpeg|png|gif|webp)$/i) && previewImages.length < 3) {
-          previewImages.push(urlData.publicUrl);
-        }
+          .upload(uploadPath, blob, { upsert: true, contentType: blob.type || 'application/octet-stream' });
+        if (uploadError) { console.error('Upload error (asset):', rel, uploadError); continue; }
+        const { data: urlData } = supabase.storage.from('templates').getPublicUrl(uploadPath);
+        assetUrls[rel] = urlData.publicUrl;
+        if (/\.(jpg|jpeg|png|gif|webp)$/i.test(rel) && previewImages.length < 3) previewImages.push(urlData.publicUrl);
       }
     }
 
-    if (!htmlContent) {
-      throw new Error('No index.html file found in ZIP');
+    if (!htmlContent) throw new Error('No index.html file found in ZIP');
+
+    // Helper: resolve a relative path against a base directory
+    const resolveRelative = (baseDir: string, relPath: string) => {
+      try {
+        const u = new URL(relPath, 'http://x/' + (baseDir ? baseDir + '/' : ''));
+        return decodeURIComponent(u.pathname.replace(/^\//, ''));
+      } catch (_) {
+        return relPath;
+      }
+    };
+
+    // 3) Process and upload CSS with rewritten url(...) to absolute URLs
+    for (const { path: rel, file } of cssFiles) {
+      const cssText = await file.async('text');
+      const baseDir = rel.includes('/') ? rel.substring(0, rel.lastIndexOf('/')) : '';
+      const rewritten = cssText.replace(/url\(([^)]+)\)/gi, (match, p1) => {
+        let raw = String(p1).trim().replace(/^['"]|['"]$/g, '');
+        if (!raw || raw.startsWith('data:') || raw.startsWith('http') || raw.startsWith('#')) return match;
+        const resolved = resolveRelative(baseDir, raw);
+        const url = assetUrls[resolved];
+        return url ? `url("${url}")` : match;
+      });
+
+      const cssBlob = new Blob([rewritten], { type: 'text/css' });
+      const uploadPath = `${templateId}/${rel}`;
+      const { error: cssUploadError } = await supabase.storage
+        .from('templates')
+        .upload(uploadPath, cssBlob, { upsert: true, contentType: 'text/css' });
+      if (cssUploadError) { console.error('Upload error (css):', rel, cssUploadError); continue; }
+      const { data: cssUrlData } = supabase.storage.from('templates').getPublicUrl(uploadPath);
+      assetUrls[rel] = cssUrlData.publicUrl;
     }
 
-    // Replace relative asset paths in HTML with public URLs
+    // 4) Rewrite HTML references (href/src and inline url())
     let processedHtml = htmlContent;
-    
-    // Sort paths by length (longest first) to handle nested paths correctly
-    const sortedPaths = Object.entries(assetUrls).sort((a, b) => b[0].length - a[0].length);
-    
-    for (const [relativePath, publicUrl] of sortedPaths) {
-      // Escape special regex characters
-      const escapedPath = relativePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      
-      // Replace in HTML attributes (href, src)
-      processedHtml = processedHtml.replace(
-        new RegExp(`(href|src)=["']${escapedPath}["']`, 'gi'),
-        `$1="${publicUrl}"`
-      );
-      
-      // Replace in CSS url()
-      processedHtml = processedHtml.replace(
-        new RegExp(`url\\(["']?${escapedPath}["']?\\)`, 'gi'),
-        `url("${publicUrl}")`
-      );
+    const sortedPaths = Object.keys(assetUrls).sort((a, b) => b.length - a.length);
+    for (const rel of sortedPaths) {
+      const publicUrl = assetUrls[rel];
+      const escaped = rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      processedHtml = processedHtml.replace(new RegExp(`(href|src)=["']${escaped}["']`, 'gi'), `$1="${publicUrl}"`);
+      processedHtml = processedHtml.replace(new RegExp(`url\\(["']?${escaped}["']?\\)`, 'gi'), `url("${publicUrl}")`);
     }
 
-    // Update template in database
     const { error: updateError } = await supabase
       .from('templates')
-      .update({
-        html_content: processedHtml,
-        asset_urls: assetUrls,
-        preview_images: previewImages.length > 0 ? previewImages : null,
-      })
+      .update({ html_content: processedHtml, asset_urls: assetUrls, preview_images: previewImages.length ? previewImages : null })
       .eq('id', templateId);
-
-    if (updateError) {
-      throw updateError;
-    }
-
-    console.log('✅ Template processed successfully');
-    console.log('  - Assets:', Object.keys(assetUrls).length);
-    console.log('  - Preview images:', previewImages.length);
+    if (updateError) throw updateError;
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Template processed successfully',
-        previewImages: previewImages.length,
-        assetCount: Object.keys(assetUrls).length,
-      }),
+      JSON.stringify({ success: true, message: 'Template processed successfully', assetCount: Object.keys(assetUrls).length, previewImages: previewImages.length }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('❌ Error processing template:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    console.error('Error processing template:', error);
+    return new Response(JSON.stringify({ error: (error as Error).message || 'Unknown error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
