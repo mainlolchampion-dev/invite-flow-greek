@@ -101,15 +101,17 @@ Deno.serve(async (req) => {
     const assetUrls: Record<string, string> = {};
     const previewImages: string[] = [];
 
-    // 1) Detect root directory (folder that contains index.html)
+    // 1) Detect root directory (folder that contains index.html or template.html)
+    let htmlFileName = 'index.html';
     for (const [name] of Object.entries(zip.files)) {
-      if (name.endsWith('index.html')) {
+      if (name.endsWith('index.html') || name.endsWith('template.html')) {
         const parts = name.split('/');
         if (parts.length > 1) rootDir = parts.slice(0, -1).join('/') + '/';
-        break;
+        htmlFileName = parts[parts.length - 1];
+        if (name.endsWith('index.html')) break; // Prefer index.html if both exist
       }
     }
-    console.log('Root dir:', rootDir || '(root)');
+    console.log('Root dir:', rootDir || '(root)', '| HTML file:', htmlFileName);
 
     // Collect files by type
     const cssFiles: Array<{ path: string; file: JSZip.JSZipObject }> = [];
@@ -120,7 +122,7 @@ Deno.serve(async (req) => {
       if (rootDir && !name.startsWith(rootDir)) continue;
       const rel = rootDir ? name.substring(rootDir.length) : name;
 
-      if (rel === 'index.html') {
+      if (rel === htmlFileName) {
         htmlContent = await file.async('text');
         continue;
       }
@@ -143,7 +145,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!htmlContent) throw new Error('No index.html file found in ZIP');
+    if (!htmlContent) throw new Error('No HTML file (index.html or template.html) found in ZIP');
 
     // Helper: resolve a relative path against a base directory
     const resolveRelative = (baseDir: string, relPath: string) => {
