@@ -106,9 +106,12 @@ export default function PublicInvitation() {
   const htmlContent = project.modified_html || template?.html_content;
   
   if (htmlContent) {
-    // Sanitize HTML to prevent XSS attacks
+    // Sanitize HTML to prevent XSS attacks while preserving template styling
     const sanitizedHtml = DOMPurify.sanitize(htmlContent, {
+      ADD_TAGS: ['style', 'link'],
+      ADD_ATTR: ['style'],
       ALLOWED_TAGS: [
+        'html', 'head', 'body', 'meta', 'title', 'style', 'link',
         'div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'a', 'span', 
         'br', 'strong', 'em', 'ul', 'ol', 'li', 'section', 'header', 'footer', 
         'nav', 'article', 'aside', 'main', 'figure', 'figcaption', 'button',
@@ -116,10 +119,11 @@ export default function PublicInvitation() {
       ],
       ALLOWED_ATTR: [
         'class', 'id', 'href', 'src', 'alt', 'style', 'target', 'rel',
-        'width', 'height', 'type', 'placeholder', 'name', 'value'
+        'width', 'height', 'type', 'placeholder', 'name', 'value', 'charset',
+        'content', 'name', 'viewport'
       ],
-      ALLOW_DATA_ATTR: false,
-      FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'link', 'style', 'base'],
+      ALLOW_DATA_ATTR: true,
+      FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'base'],
       FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 
                     'onfocus', 'onblur', 'onchange', 'onsubmit', 'oninput']
     });
