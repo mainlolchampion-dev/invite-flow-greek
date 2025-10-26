@@ -11,6 +11,7 @@ import { VisualEditor } from "@/components/VisualEditor";
 import { processTemplateHtml, applyThemeColors } from "@/components/HtmlProcessor";
 import { ColorPicker } from "@/components/ColorPicker";
 import { GalleryManager } from "@/components/GalleryManager";
+import { TemplateFieldsEditor } from "@/components/TemplateFieldsEditor";
 import { Sparkles, Save, ArrowLeft, Eye } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
@@ -284,6 +285,15 @@ export default function Editor() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Template Fields Editor */}
+            <TemplateFieldsEditor 
+              html={html}
+              onUpdate={(updatedHtml) => {
+                setHtml(updatedHtml);
+                handleHtmlSave(updatedHtml);
+              }}
+            />
 
             {/* Color Picker */}
             <ColorPicker 

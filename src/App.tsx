@@ -10,6 +10,7 @@ import Templates from "./pages/Templates";
 import Admin from "./pages/Admin";
 import Editor from "./pages/Editor";
 import PublicInvitation from "./pages/PublicInvitation";
+import ProcessDahlia from "./pages/ProcessDahlia";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/editor/:projectId" element={<Editor />} />
           <Route path="/p/:slug" element={<PublicInvitation />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/process-dahlia" element={<ProcessDahlia />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

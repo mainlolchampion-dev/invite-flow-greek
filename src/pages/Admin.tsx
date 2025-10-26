@@ -245,9 +245,19 @@ export default function Admin() {
       <div className="container mx-auto px-4 pt-24 pb-12">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
-            {t.admin.title}
-          </h1>
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              {t.admin.title}
+            </h1>
+            <Button 
+              onClick={() => navigate("/process-dahlia")}
+              variant="outline"
+              className="gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Process Dahlia Template
+            </Button>
+          </div>
           <p className="text-muted-foreground">{user?.email}</p>
         </div>
 
