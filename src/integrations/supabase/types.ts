@@ -61,6 +61,7 @@ export type Database = {
       templates: {
         Row: {
           asset_urls: Json | null
+          background_image_url: string | null
           created_at: string
           description_el: string | null
           description_en: string | null
@@ -77,11 +78,13 @@ export type Database = {
           name_en: string
           preview_images: string[] | null
           price: number | null
+          text_zones: Json | null
           thumbnail_url: string | null
           updated_at: string
         }
         Insert: {
           asset_urls?: Json | null
+          background_image_url?: string | null
           created_at?: string
           description_el?: string | null
           description_en?: string | null
@@ -98,11 +101,13 @@ export type Database = {
           name_en: string
           preview_images?: string[] | null
           price?: number | null
+          text_zones?: Json | null
           thumbnail_url?: string | null
           updated_at?: string
         }
         Update: {
           asset_urls?: Json | null
+          background_image_url?: string | null
           created_at?: string
           description_el?: string | null
           description_en?: string | null
@@ -119,6 +124,7 @@ export type Database = {
           name_en?: string
           preview_images?: string[] | null
           price?: number | null
+          text_zones?: Json | null
           thumbnail_url?: string | null
           updated_at?: string
         }
@@ -263,10 +269,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_slug: {
-        Args: { base_text: string }
-        Returns: string
-      }
+      generate_slug: { Args: { base_text: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
